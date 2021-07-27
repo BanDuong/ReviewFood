@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'translations',
     'corsheaders',
     'djoser',
+    # 'phone_field',   # Phone field in model
 ]
 
 MIDDLEWARE = [
@@ -129,6 +130,9 @@ STATIC_URL = '/static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # -------------------------------MORE----------------------------------------#
+REFRESH_KEY = 'refresh' + SECRET_KEY + '@1234'
+
+AUTH_USER_MODEL = 'food.User'
 
 AUTHENTICATION_BACKENDS = [
     # 'django.contrib.auth.backends.ModelBackend',  # default

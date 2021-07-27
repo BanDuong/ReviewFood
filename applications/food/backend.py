@@ -12,13 +12,11 @@ UserModel = get_user_model()  # C2: from django.conf import settings   User = se
 
 class CustomeBackend(ModelBackend):
 
-    def authenticate(self, request, email=None, password=None, **kwargs):
-        if email is None:
-            email = kwargs.get(UserModel.EMAIL_FIELD)
-        if email is None or password is None:
+    def authenticate(self, request, username=None, password=None, **kwargs):
+        if username is None or password is None:
             raise exceptions.ValidationError(detail="check email or password again", code="ErrorEntity")
         try:
-            user = UserModel._default_manager.get_by_natural_key(email)  # xử lý ngôn ngữ tự nhiên với email
+            user = UserModel._default_manager.get_by_natural_key(username)  # xử lý ngôn ngữ tự nhiên với email
         except UserModel.DoesNotExist:
             UserModel().set_password(password)
         else:

@@ -4,7 +4,7 @@ from rest_framework import status
 from rest_framework.exceptions import APIException
 from rest_framework.views import exception_handler
 
-from mysite.settings import DEBUG
+from ReviewFood.settings.local import DEBUG
 
 
 def custom_exception_handler(exc, context):
