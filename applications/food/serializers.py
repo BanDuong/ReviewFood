@@ -2,6 +2,7 @@ from rest_framework import serializers
 from .models import User
 from rest_framework.exceptions import ValidationError
 from django.contrib.auth import authenticate
+import re
 
 
 class CreateUserSerializer(serializers.ModelSerializer):
@@ -46,7 +47,6 @@ class CreateUserSerializer(serializers.ModelSerializer):
 
 
 class LoginUserSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = User
         fields = ["id", "username", "email", "password", "is_admin", "is_superuser", "is_staff", ]
@@ -54,12 +54,45 @@ class LoginUserSerializer(serializers.ModelSerializer):
             'password': {"write_only": True}
         }
 
-class ProfileSerializer(serializers.ModelSerializer):
 
+class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = '__all__'
 
 
+class ChangePasswordSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email', 'password', ]
 
 
+class ChangeProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = '__all__'
+        extra_kwargs = {
+            'password': {"write_only": True}
+        }
+
+    def validate_username(self, username):
+        try:
+            User.objects.get(username=username)
+            raise ValidationError(detail="Username exist", code="EmailExist")
+        except User.MultipleObjectsReturned:
+            raise ValidationError(detail="Many similar usernames already exist", code="MultiUserNameExist")
+        except User.DoesNotExist:
+            return username
+        except Exception as e:
+            raise e
+
+    def validate_email(self, email):
+        try:
+            User.objects.get(email=email)
+            raise ValidationError(detail="Email exist", code="EmailExist")
+        except User.MultipleObjectsReturned:
+            raise ValidationError(detail="Many similar emails already exist", code="MultiEmailExist")
+        except User.DoesNotExist:
+            return email
+        except Exception as e:
+            raise e
