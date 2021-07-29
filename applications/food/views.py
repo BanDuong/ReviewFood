@@ -55,15 +55,15 @@ class LoginUser(APIView):
                 raise ValidationError(detail="Check password or username again")
             else:
                 response = Response()
-                if request.COOKIES.get('refresh_token_' + str(user.id)):
+                if request.COOKIES.get('refresh_token'):
                     response.data = {"warning": "Account is already logged in. Don't try again!"}
                     return response
                 else:
                     access_token = generate_access_token(user)
                     refresh_token = generate_fresh_token(user)
-                    response.set_cookie(key='refresh_token_' + str(user.id), value=refresh_token, httponly=True)
-                    rd.set("refresh_token_" + str(user.id), refresh_token)
-
+                    response.set_cookie(key='access_token', value=access_token, httponly=True)
+                    rd.set("refresh_token", refresh_token)
+                    # rd.expire()
                     serializer = LoginUserSerializer(instance=user)
 
                     response.data = {
@@ -78,83 +78,111 @@ class LoginUser(APIView):
 
 class ProfileUser(APIView):
     def get(self, request, *args, **kwargs):
-        try:
-            list_key_token = rd.keys()
-            for key in list_key_token:
-                if request.COOKIES.get(key.decode('utf-8')):
-                    payload = jwt.decode(request.COOKIES.get(key.decode('utf-8')).encode('utf-8'),
-                                         key=settings.REFRESH_KEY, algorithms=["HS256"])
-                    user = User.objects.get(id=payload.get('id'))
-                    serializer = ProfileSerializer(user)
-                    return Response(data={"user": serializer.data})
-                    break
-            else:
-                raise ValidationError(detail="Account logged out")
-        except Exception as e:
-            raise ValidationError(detail="don't get information", code="GetInforError")
+        get_refresh_token = rd.get("refresh_token")
+        get_access_token = request.COOKIES.get("access_token")
+        if not get_access_token or not get_refresh_token:
+            raise ValidationError(detail="Please Login", code="DontLogin")
+        else:
+            response = Response()
+            try:
+                payload = jwt.decode(get_access_token, key=settings.SECRET_KEY, algorithms=["HS256"])
+                user = User.objects.get(id=payload.get('id'))
+                serializer = ProfileSerializer(user)
+                response.data = {"user": serializer.data}
+                return response
+            except:
+                payload = jwt.decode(get_refresh_token, key=settings.REFRESH_KEY, algorithms=["HS256"])
+                user = User.objects.get(id=payload.get('id'))
+                access_token = generate_access_token(user)
+                response.set_cookie(key='access_token', value=access_token, httponly=True)
+                serializer = ProfileSerializer(user)
+                response.data = {"user": serializer.data}
+                return response
 
 
 class ChangePasswordUser(APIView):
 
     def put(self, request, *args, **kwargs):
-        try:
-            list_key_token = rd.keys()
-            for key in list_key_token:
-                if request.COOKIES.get(key.decode('utf-8')):
-                    payload = jwt.decode(request.COOKIES.get(key.decode('utf-8')).encode('utf-8'),
-                                         key=settings.REFRESH_KEY, algorithms=["HS256"])
-                    user = User.objects.get(id=payload.get('id'))
-                    password = request.data.get('password')
-                    if user.check_password(password):
-                        new_password = request.data.get('new_password')
-                        renew_password = request.data.get('renew_password')
-                        if new_password == renew_password:
-                            user.set_password(new_password)
-                            user.save()
-                            return Response(data={"notice": "password changed successfully"})
-                        else:
-                            raise ValidationError(detail="check new password again", code="CheckNewPassword")
-                    else:
-                        raise ValidationError(detail="Password wrong", code="PasswordWrong")
-        except Exception as e:
-            raise ValidationError(detail="Can't Update password", code="UpdatePasswordError")
-
-
-class ChangeProfileUser(generics.UpdateAPIView):
-    queryset = User.objects.all()
-    serializer_class = ChangeProfileSerializer
-
-    def update(self, request, *args, **kwargs):
-        try:
-            if request.data.get('password'):
-                raise ValidationError(detail="sorry! You can't change password in this site!")
+        if request.data:
+            get_refresh_token = rd.get("refresh_token")
+            get_access_token = request.COOKIES.get("access_token")
+            if not get_access_token or not get_refresh_token:
+                raise ValidationError(detail="Please Login", code="DontLogin")
             else:
-                user = self.get_object()
-                serializer = self.get_serializer(user, data=request.data)
-                serializer.is_valid(raise_exception=True)
-                serializer.save()
-                user.save()
-                return Response(serializer.data)
-        except Exception as e:
-            raise ErrCannotUpdateEntity(entity="User", err=e)
+                response = Response()
+                try:
+                    payload = jwt.decode(get_access_token, key=settings.SECRET_KEY, algorithms=["HS256"])
+                    user = User.objects.get(id=payload.get('id'))
+                except:
+                    payload = jwt.decode(get_refresh_token, key=settings.REFRESH_KEY, algorithms=["HS256"])
+                    user = User.objects.get(id=payload.get('id'))
+                    access_token = generate_access_token(user)
+                    response.set_cookie(key='access_token', value=access_token, httponly=True)
+                password = request.data.get('password')
+                if user.check_password(password):
+                    new_password = request.data.get('new_password')
+                    renew_password = request.data.get('renew_password')
+                    if new_password == renew_password:
+                        user.set_password(new_password)
+                        user.save()
+                        # rd.delete("refresh_token")
+                        # response.delete_cookie(key="access_token")
+                        response.data = {"notice": "your password changed successfully"}
+                        verify_email(user.email)
+                        return response
+                    else:
+                        raise ValidationError(detail="check new password again", code="CheckNewPassword")
+                else:
+                    raise ValidationError(detail="Password wrong", code="PasswordWrong")
+        else:
+            raise ValidationError(detail="No data upload. Check again!")
+
+
+class ChangeProfileUser(APIView):
+
+    def put(self, request, *args, **kwargs):
+        data = request.data
+        if data:
+            if request.data.get('password'):
+                raise ValidationError(
+                    detail="don't change the password in here, go to site: http://localhost:8000/api/v1/user/change_password/")
+            else:
+                get_refresh_token = rd.get("refresh_token")
+                get_access_token = request.COOKIES.get("access_token")
+                if not get_access_token or not get_refresh_token:
+                    raise ValidationError(detail="Please Login", code="DontLogin")
+                else:
+                    response = Response()
+                    try:
+                        payload = jwt.decode(get_access_token, key=settings.SECRET_KEY, algorithms=["HS256"])
+                        user = User.objects.get(id=payload.get('id'))
+                    except:
+                        payload = jwt.decode(get_refresh_token, key=settings.REFRESH_KEY, algorithms=["HS256"])
+                        user = User.objects.get(id=payload.get('id'))
+                        access_token = generate_access_token(user)
+                        response.set_cookie(key='access_token', value=access_token, httponly=True)
+                    for k, value in data.items():
+                        setattr(user, k, value)
+                    user.save()
+                    verify_email(user.email)
+                    # rd.delete("refresh_token")
+                    # response.delete_cookie("access_token")
+                    response.data = {"notice": "Update your profile successfully"}
+                    return response
+        else:
+            raise ValidationError(detail="No data upload. Check again!")
 
 
 class LogoutUser(APIView):
 
     def post(self, request, *args, **kwargs):
-        response = Response()
-        list_key_token = rd.keys()
-        for key in list_key_token:
-            if request.COOKIES.get(key.decode('utf-8')):
-                rd.delete(key)
-                response.delete_cookie(key=key.decode('utf-8'))
-                response.delete_cookie(key='csrftoken')
-                response.data = {"result": "Log out successful"}
-                return response
-                break
-        else:
-            response.data = {"response": "No any account logging"}
-            # return redirect('../login/')
+        if request.COOKIES.get("access_token"):
+            rd.delete("refresh_token")
+            response = Response()
+            response.delete_cookie(key="access_token")
+            response.data = {"notice": "deleted successfully!"}
             return response
+        else:
+            return Response(data={"warning": "No any account logging"})
 
 # ------------------------------------------Admin-------------------------------------------------------#

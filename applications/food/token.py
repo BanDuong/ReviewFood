@@ -10,7 +10,7 @@ def generate_access_token(user):
         "email": user.email,
         "is_admin": user.is_admin,
         "is_superuser": user.is_superuser,
-        "exp": datetime.datetime.utcnow() + datetime.timedelta(days=0, minutes=5),
+        "exp": datetime.datetime.utcnow() + datetime.timedelta(minutes=5),
         "iat": datetime.datetime.utcnow(),
     }
     access_token = jwt.encode(access_payload, settings.SECRET_KEY, algorithm='HS256')

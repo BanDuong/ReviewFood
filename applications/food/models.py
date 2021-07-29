@@ -4,6 +4,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser, UserManager, Group, Permission
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
+from .token import generate_access_token
 
 
 # Create your models here.
@@ -30,7 +31,7 @@ class User(AbstractUser):
     )
     first_name = models.CharField(_('first name'), max_length=150, blank=True)
     last_name = models.CharField(_('last name'), max_length=150, blank=True)
-    email = models.EmailField(_('email address'), blank=True,unique=True)
+    email = models.EmailField(_('email address'), blank=True, unique=True)
     is_staff = models.BooleanField(
         _('staff status'),
         default=False,
@@ -105,3 +106,6 @@ class User(AbstractUser):
     def email_user(self, subject, message, from_email=None, **kwargs):
         """Send an email to this user."""
         send_mail(subject, message, from_email, [self.email], **kwargs)
+
+    # def get_token(self):
+    #     return generate_access_token(self)
