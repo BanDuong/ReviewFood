@@ -21,6 +21,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-25mkw=0*nuu+8m5&80oct8*)=4eifsv%!qd-%7+elnqu4kj0#y'
 
+REFRESH_KEY = 'refresh' + SECRET_KEY + '@1234'
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
@@ -130,7 +132,6 @@ STATIC_URL = '/static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # -------------------------------MORE----------------------------------------#
-REFRESH_KEY = 'refresh' + SECRET_KEY + '@1234'
 
 AUTH_USER_MODEL = 'food.User'
 
