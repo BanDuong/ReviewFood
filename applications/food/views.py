@@ -10,7 +10,7 @@ from rest_framework.exceptions import AuthenticationFailed, ValidationError
 import jwt
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticatedOrReadOnly, IsAuthenticated
-from .token import generate_access_token, generate_fresh_token
+from .token import generate_access_token, generate_fresh_token, generate_token
 from django.conf import settings
 import redis
 import uuid
@@ -32,12 +32,16 @@ def check_token_user(request, access_token, refresh_token):
             payload = jwt.decode(get_access_token, key=settings.SECRET_KEY, algorithms=["HS256"])
             user = User.objects.get(id=payload.get('id'))
             return response, user
-        except:
-            payload = jwt.decode(get_refresh_token, key=settings.REFRESH_KEY, algorithms=["HS256"])
-            user = User.objects.get(id=payload.get('id'))
-            access_token = generate_access_token(user)
-            response.set_cookie(key='access_token', value=access_token, httponly=True)
-            return response, user
+        except Exception as e:
+            if type(e) == jwt.exceptions.ExpiredSignatureError:
+                print("okeeeeeeeeeeee")
+                payload = jwt.decode(get_refresh_token, key=settings.REFRESH_KEY, algorithms=["HS256"])
+                user = User.objects.get(id=payload.get('id'))
+                access_token = generate_access_token(user)
+                response.set_cookie(key='access_token', value=access_token, httponly=True)
+                return response, user
+            else:
+                raise ValidationError(detail=e)
 
 
 class CreateUser(APIView):
@@ -48,14 +52,30 @@ class CreateUser(APIView):
             if data.get('password') == data.get('re_password'):
                 serializer = CreateUserSerializer(data=data)
                 serializer.is_valid(raise_exception=True)
-                serializer.save()
-                verify_email(data.get('email'))
-                return Response(data=serializer.data, status=status.HTTP_200_OK)
+                code = random.randint(10000, 1000000)
+                token = generate_token(data, code)
+                # serializer.save()
+                send_content_by_email(data.get('email'), "Verify your account", "token: "+str(token) + '\n' + 'code: '+ str(code), "http://localhost:8000/api/v1/verify_create_user/" )
+                # return Response(data=serializer.data, status=status.HTTP_200_OK)
+                return Response(data = {"notice": "next to verify account: http://localhost:8000/api/v1/verify_create_user/"})
             else:
                 raise ValidationError(detail="password wrong", code="PasswordWrong")
         except Exception as e:
             raise ErrCannotCreateEntity(entity="User", err=e)
 
+
+class VerifyCreateUser(APIView):
+    def post(self, request, *args, **kwargs):
+        code = request.data.get('code')
+        token = request.data.get('token')
+        if code and token:
+            payload = jwt.decode(token, key=settings.SECRET_KEY, algorithms=["HS256"])
+            serializer = CreateUserSerializer(data=payload)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(data=serializer.data, status=status.HTTP_200_OK)
+        else:
+            raise ValidationError("No data request")
 
 class LoginUser(APIView):
 
@@ -245,11 +265,33 @@ class ResetPasswordUser(generics.UpdateAPIView):
         response = check_token_user(request, "access_token_admin", "refresh_token_admin")[0]  # only get response
         try:
             user = self.get_object()
-            new_password = user.username + str(random.randint(10000,10000000))
+            new_password = user.username + str(random.randint(10000, 10000000))
             user.set_password(new_password)
             user.save()
-            send_content_by_email(user.email, "Reset password", f"This's your password.\n {new_password} \nPlease change your password after login.")
+            send_content_by_email(user.email, "Reset password",
+                                  f"This's your password.\n {new_password} \nPlease change your password after login.")
             response.data = {"notice": "successfully reset"}
             return response
         except:
             raise ValidationError("User does not exist")
+
+
+class DeleteUser(generics.DestroyAPIView):
+    queryset = User.objects.all()
+
+    def delete(self, request, *args, **kwargs):
+        response, user_admin = check_token_user(request, "access_token_admin", "refresh_token_admin")
+        try:
+            user = self.get_object()
+            if user != user_admin:
+                if user:
+                    user.delete()
+                    response.data = {"notice": "deleted successfully"}
+                    return response
+                else:
+                    raise ValidationError("User does not exist")
+            else:
+                response.data = {"notice": "account logging in. Don't delete"}
+                return response
+        except Exception as e:
+            raise ValidationError(e)

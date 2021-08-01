@@ -2,6 +2,16 @@ import datetime
 import jwt
 from django.conf import settings
 
+def generate_token(data, code):
+    payload = {}
+    for k,v in data.items():
+        if k != "re_password":
+            payload[k] = v
+
+    payload['code'] = code
+
+    token = jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
+    return token
 
 def generate_access_token(user):
     access_payload = {

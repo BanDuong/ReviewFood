@@ -10,6 +10,7 @@ urlpatterns = [
     path('user/profile/', views.ProfileUser.as_view(), name="profile_user"),  # profile user
     path('user/change_password/', views.ChangePasswordUser.as_view(), name="change_password"),  # change password
     path('user/change_profile/', views.ChangeProfileUser.as_view(), name="change_profile"),  # change profile
+    path('verify_create_user/', views.VerifyCreateUser.as_view(), name="verify_create_user"),  # verify code create user
 
     # ---------------------------------ADMIN--------------------------------------------------------------------#
 
@@ -18,4 +19,5 @@ urlpatterns = [
     path('admin/listusers/', views.ShowListUser.as_view(), name="list_users"),  # show list users
     path('admin/retrieve/user/<int:pk>', views.RetrieveUser.as_view(), name="retrieve_users"),  # Retrieve each user
     path('admin/reset_password/<int:pk>', views.ResetPasswordUser.as_view(), name="reset_password_users"), # Reset password user
+    path('admin/delete_user/<int:pk>', views.DeleteUser.as_view(), name="delete_users"), # Delete password user
 ]
