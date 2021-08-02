@@ -16,10 +16,12 @@ import redis
 import uuid
 from .mail import verify_email, send_content_by_email
 from django.contrib.auth import authenticate
+from django.views import View
 
-# ----------------------------------User-----------------------------------------------------------#
 rd = redis.Redis(host="redis")
 
+
+# -------------------------------------------Common------------------------------------------#
 
 def check_token_user(request, access_token, refresh_token):
     get_refresh_token = rd.get(refresh_token)
@@ -34,7 +36,6 @@ def check_token_user(request, access_token, refresh_token):
             return response, user
         except Exception as e:
             if type(e) == jwt.exceptions.ExpiredSignatureError:
-                print("okeeeeeeeeeeee")
                 payload = jwt.decode(get_refresh_token, key=settings.REFRESH_KEY, algorithms=["HS256"])
                 user = User.objects.get(id=payload.get('id'))
                 access_token = generate_access_token(user)
@@ -43,6 +44,29 @@ def check_token_user(request, access_token, refresh_token):
             else:
                 raise ValidationError(detail=e)
 
+
+class ForgetPassword(APIView):
+
+    def post(self, request, *args, **kwargs):
+        try:
+            email = request.data.get('email')
+            if email:
+                user = User.objects.get(email=email)
+                if user:
+                    new_pw = user.username + str(random.randint(10000, 1000000))
+                    user.set_password(new_pw)
+                    send_content_by_email(email, "forget password", "your new pass word: " + str(new_pw))
+                    user.save()
+                    return Response(data={"notice": "sent new password to your email. Check it now please!"})
+                else:
+                    raise ValidationError("User not exist")
+            else:
+                raise ValidationError("check your email request again")
+        except Exception as e:
+            raise ValidationError(e)
+
+
+# ----------------------------------User-----------------------------------------------------------#
 
 class CreateUser(APIView):
 
@@ -55,9 +79,12 @@ class CreateUser(APIView):
                 code = random.randint(10000, 1000000)
                 token = generate_token(data, code)
                 # serializer.save()
-                send_content_by_email(data.get('email'), "Verify your account", "token: "+str(token) + '\n' + 'code: '+ str(code), "http://localhost:8000/api/v1/verify_create_user/" )
+                send_content_by_email(data.get('email'), "Verify your account",
+                                      "token: " + str(token) + '\n' + 'code: ' + str(code),
+                                      "http://localhost:8000/api/v1/verify_create_user/")
                 # return Response(data=serializer.data, status=status.HTTP_200_OK)
-                return Response(data = {"notice": "next to verify account: http://localhost:8000/api/v1/verify_create_user/"})
+                return Response(
+                    data={"notice": "next to verify account: http://localhost:8000/api/v1/verify_create_user/"})
             else:
                 raise ValidationError(detail="password wrong", code="PasswordWrong")
         except Exception as e:
@@ -77,7 +104,11 @@ class VerifyCreateUser(APIView):
         else:
             raise ValidationError("No data request")
 
+
 class LoginUser(APIView):
+
+    def get(self, request, *args, **kwargs):
+        return Response()
 
     def post(self, request, *args, **kwargs):
         try:
@@ -276,6 +307,29 @@ class ResetPasswordUser(generics.UpdateAPIView):
             raise ValidationError("User does not exist")
 
 
+class UpdateUser(generics.UpdateAPIView):
+    queryset = User.objects.all()
+
+    def put(self, request, *args, **kwargs):
+        try:
+            data = request.data
+            if data:
+                response = check_token_user(request, "access_token_admin", "refresh_token_admin")[0]
+                user = self.get_object()
+                if user:
+                    for k, value in data.items():
+                        setattr(user, k, value)
+                    user.save()
+                    response.data = {"notice": "Changed user information successfully"}
+                    return response
+                else:
+                    raise ValidationError(detail="user not exist")
+            else:
+                raise ValidationError(detail="No data upload. Check again!")
+        except Exception as e:
+            raise ValidationError(e)
+
+
 class DeleteUser(generics.DestroyAPIView):
     queryset = User.objects.all()
 
@@ -295,3 +349,14 @@ class DeleteUser(generics.DestroyAPIView):
                 return response
         except Exception as e:
             raise ValidationError(e)
+
+
+# ---------------------------------------UI-----------------------------------------#
+
+class Test(APIView):
+
+    def get(self, request, *args, **kwargs):
+        response, user = check_token_user(request, "access_token", "refresh_token")
+        return render(request, template_name="food/base.html")
+
+
