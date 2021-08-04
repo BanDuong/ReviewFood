@@ -8,13 +8,6 @@ from .token import generate_access_token
 
 
 # Create your models here.
-class Review(models.Model):
-    pass
-
-
-class ImagesReview(models.Model):
-    pass
-
 
 class User(AbstractUser):
     username_validator = UnicodeUsernameValidator()
@@ -109,3 +102,50 @@ class User(AbstractUser):
 
     # def get_token(self):
     #     return generate_access_token(self)
+
+
+class TimeStamp(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="create")
+    updated_at = models.DateTimeField(auto_now_add=True, verbose_name="update")
+
+    class Meta:
+        abstract = True
+
+
+class Review(TimeStamp):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="review", null=True, blank=True)
+    title = models.CharField(max_length=255, blank=True, null=True, verbose_name="title")
+    image_title = models.ImageField(verbose_name="image_title", upload_to="media/", blank=True, null=True)
+    status = models.BooleanField(default=False)
+
+    def __str__(self):
+        return self.title
+
+    class Meta:
+        db_table = "tb_review"
+        verbose_name_plural = "review"
+
+
+class Content(TimeStamp):
+    title = models.ForeignKey(Review, on_delete=models.CASCADE, related_name="content", null=True, blank=True)
+    heading = models.CharField(max_length=255, blank=True, null=True, verbose_name="heading")
+    content = models.TextField(blank=True, null=True, verbose_name="content")
+
+    def __str__(self):
+        return self.heading
+
+    class Meta:
+        db_table = "tb_content"
+        verbose_name_plural = "content"
+
+
+class Image(TimeStamp):
+    content = models.ForeignKey(Content, on_delete=models.CASCADE, related_name="image", null=True, blank=True)
+    images = models.ImageField(verbose_name="image", upload_to="media/", blank=True, null=True)
+
+    def __str__(self):
+        return self.images.name
+
+    class Meta:
+        db_table = "tb_image"
+        verbose_name_plural = "image"

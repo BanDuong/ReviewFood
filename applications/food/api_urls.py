@@ -19,10 +19,17 @@ urlpatterns = [
     path('admin/logout/', views.LogoutAdmin.as_view(), name="logout_admin"),  # logout admin
     path('admin/listusers/', views.ShowListUser.as_view(), name="list_users"),  # show list users
     path('admin/retrieve/user/<int:pk>', views.RetrieveUser.as_view(), name="retrieve_users"),  # Retrieve each user
-    path('admin/reset_password/<int:pk>', views.ResetPasswordUser.as_view(), name="reset_password_users"), # Reset password user
-    path('admin/delete_user/<int:pk>', views.DeleteUser.as_view(), name="delete_users"), # Delete user
-    path('admin/update_user/<int:pk>', views.UpdateUser.as_view(), name="update_user"), # Update user
+    path('admin/reset_password/<int:pk>', views.ResetPasswordUser.as_view(), name="reset_password_users"),  # Reset password user
+    path('admin/delete_user/<int:pk>', views.DeleteUser.as_view(), name="delete_users"),  # Delete user
+    path('admin/update_user/<int:pk>', views.UpdateUser.as_view(), name="update_user"),  # Update user
+    path('admin/check_post_review/', views.CheckPostReview.as_view(), name="check_post_review"),  # Check status Post Review
+    path('admin/status_post_review/<int:pk>', views.StatusPostReview.as_view(), name="status_post_review"),  # Status Post Review
 
-    #---------------------------------UI---------------------------------------------------------#
-    path('test/', views.Test.as_view()),
+    #---------------------------------DB---------------------------------------------------------#
+    path('admin/all/', views.ShowAllUserPostReview.as_view(), name="show_all"),  # show all
+    path('home/', views.ShowAllPost.as_view(), name="all_post"),  # show all post
+    path('search/', views.SearchReview.as_view(), name="search_review"),  # search review
+    path('user/post_review/', views.UserPostReview.as_view(), name="post_review"),  # post review
+    path('user/delete_review/<int:pk>', views.UserDeleteReview.as_view(), name="delete_review"),  # delete review
+    path('user/list_review/', views.UserShowListReview.as_view(), name="list_review"),  # show list review
 ]

@@ -1,6 +1,8 @@
 import random
 from django.shortcuts import render, redirect
-from .models import User
+
+from common.paging import CustomPageNumberPagination20
+from .models import *
 from rest_framework.views import APIView
 from rest_framework import generics
 from common.errors import *
@@ -115,7 +117,7 @@ class LoginUser(APIView):
             email = request.data.get('email')
             password = request.data.get('password')
 
-            user = authenticate(email=email, password=password)
+            user = authenticate(username=email, password=password)
             if user == None:
                 raise ValidationError(detail="Check password or email again")
             else:
@@ -213,7 +215,7 @@ class LoginAdmin(APIView):
             email = request.data.get('email')
             password = request.data.get('password')
 
-            user = authenticate(email=email, password=password)
+            user = authenticate(username=email, password=password)
             if user == None:
                 raise ValidationError(detail="Check password or email again")
             else:
@@ -351,12 +353,172 @@ class DeleteUser(generics.DestroyAPIView):
             raise ValidationError(e)
 
 
-# ---------------------------------------UI-----------------------------------------#
+# ---------------------------------------Management_DB-----------------------------------------#
 
-class Test(APIView):
+class SearchReview(generics.ListCreateAPIView):
+    query = Content.objects.all()
+    pagination_class = CustomPageNumberPagination20
+
+    def post(self, request, *args, **kwargs):
+        try:
+            key = request.data.get('search')
+            if key and self.query:
+                data = []
+                for content in self.query:
+                    if key.lower() in content.heading.lower():
+                        title = Review.objects.get(id=content.title_id).title
+                        if len(data) == 0:
+                            data.append(title)
+                        else:
+                            for d in data:
+                                if title != d:
+                                    data.append(title)
+                return Response(data={'result': data})
+            else:
+                raise ValidationError("Data None")
+        except Exception as e:
+            raise ValidationError(e)
+
+
+class ShowAllPost(generics.ListAPIView):
+    queryset = Review.objects.filter(status=True)
+    serializer_class = HomepageSerializer
+    pagination_class = CustomPageNumberPagination20
+
+    def list(self, request, *args, **kwargs):
+        try:
+            queryset = self.filter_queryset(self.get_queryset())
+
+            page = self.paginate_queryset(queryset)
+            if page is not None:
+                serializer = self.get_serializer(page, many=True)
+                return self.get_paginated_response(serializer.data)
+
+            serializer = self.get_serializer(queryset, many=True)
+            return Response(serializer.data)
+        except Exception as e:
+            raise ValidationError(e)
+
+
+class CheckPostReview(generics.ListCreateAPIView):
+    queryset = Review.objects.filter(status=False)
+    serializer_class = ReviewSerializer
 
     def get(self, request, *args, **kwargs):
+        response = check_token_user(request, "access_token_admin", "refresh_token_admin")[0]
+        try:
+            queryset = self.filter_queryset(self.get_queryset())
+
+            page = self.paginate_queryset(queryset)
+            if page is not None:
+                serializer = self.get_serializer(page, many=True)
+                return self.get_paginated_response(serializer.data)
+
+            serializer = self.get_serializer(queryset, many=True)
+            response.data = {'data': serializer.data}
+            return response
+        except Exception as e:
+            raise ValidationError(e)
+
+
+class StatusPostReview(APIView):
+
+    # serializer_class = ReviewSerializer
+
+    def put(self, request, pk):
+        response = check_token_user(request, "access_token_admin", "refresh_token_admin")[0]
+        try:
+            instance = Review.objects.get(id=pk)
+            status = request.data.get('status')
+            if instance.status == True:
+                response.data = {"notice": "This review is activated. Don't activate again"}
+                return response
+            else:
+                instance.status = True
+                instance.save()
+                response.data = {"notice": "Activated successfully"}
+                return response
+        except Exception as e:
+            raise ValidationError(e)
+
+
+class ShowAllUserPostReview(generics.ListAPIView):
+    queryset = User.objects.prefetch_related('review').all()
+    serializer_class = ReviewFoodSerializer
+
+    def get(self, request, *args, **kwargs):
+        response, user = check_token_user(request, "access_token_admin", "refresh_token_admin")
+        try:
+            queryset = self.filter_queryset(self.get_queryset())
+            page = self.paginate_queryset(queryset)
+            if page is not None:
+                serializer = self.get_serializer(page, many=True)
+                return self.get_paginated_response(serializer.data)
+            serializer = self.get_serializer(queryset, many=True)
+            return Response(serializer.data)
+        except Exception as e:
+            raise ValidationError(e)
+
+
+class UserPostReview(APIView):
+
+    def post(self, request, *args, **kwargs):
         response, user = check_token_user(request, "access_token", "refresh_token")
-        return render(request, template_name="food/base.html")
+        try:
+            data = request.data
+            image = data.getlist('image')
+            if data:
+                if not Review.objects.get(title=data.get('title')):
+                    r = Review(user=user, title=data.get('title'), image_title=data.get('image_title'))
+                    r.save()
+                else:
+                    r = Review.objects.get(title=data.get('title'))
+                c = Content(title=r, heading=data.get('heading'), content=data.get('content'))
+                c.save()
+                for img in data.getlist('image'):
+                    i = Image(content=c, images=img)
+                    i.save()
+                response.data = {"notice": "posted successfully"}
+                return response
+            else:
+                raise ValidationError("No data request")
+        except Exception as e:
+            raise ValidationError(e)
 
 
+class UserDeleteReview(generics.DestroyAPIView):
+    queryset = Review.objects.all()
+
+    def delete(self, request, *args, **kwargs):
+        response = check_token_user(request, "access_token", "refresh_token")[0]
+        try:
+            instance = self.get_object()
+            self.perform_destroy(instance)
+            response.data = {"notice": "deleted successfully"}
+            response.status_code = status.HTTP_204_NO_CONTENT
+            return response
+        except Exception as e:
+            raise ValidationError(e)
+
+    def perform_destroy(self, instance):
+        instance.delete()
+
+
+class UserShowListReview(generics.ListAPIView):
+    queryset = Review.objects.all()
+    serializer_class = ReviewSerializer
+
+    def get(self, request, *args, **kwargs):
+        response = check_token_user(request, "access_token", "refresh_token")[0]
+        try:
+            queryset = self.filter_queryset(self.get_queryset())
+
+            page = self.paginate_queryset(queryset)
+            if page is not None:
+                serializer = self.get_serializer(page, many=True)
+                return self.get_paginated_response(serializer.data)
+
+            serializer = self.get_serializer(queryset, many=True)
+            return Response(serializer.data)
+        except Exception as e:
+            raise ValidationError(e)

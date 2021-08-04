@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User
+from .models import *
 from rest_framework.exceptions import ValidationError
 from django.contrib.auth import authenticate
 import re
@@ -96,3 +96,40 @@ class ChangeProfileSerializer(serializers.ModelSerializer):
             return email
         except Exception as e:
             raise e
+
+
+
+class ImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Image
+        fields = '__all__'
+
+
+class ContentSerializer(serializers.ModelSerializer):
+    image = ImageSerializer(many=True)
+
+    class Meta:
+        model = Content
+        fields = '__all__'
+
+
+class ReviewSerializer(serializers.ModelSerializer):
+    content = ContentSerializer(many=True)
+
+    class Meta:
+        model = Review
+        fields = '__all__'
+
+
+class ReviewFoodSerializer(serializers.ModelSerializer):
+    review = ReviewSerializer(many=True)
+
+    class Meta:
+        model = User
+        fields = '__all__'
+
+
+class HomepageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Review
+        fields = ['title', 'image_title', ]
