@@ -32,4 +32,9 @@ urlpatterns = [
     path('user/post_review/', views.UserPostReview.as_view(), name="post_review"),  # post review
     path('user/delete_review/<int:pk>', views.UserDeleteReview.as_view(), name="delete_review"),  # delete review
     path('user/list_review/', views.UserShowListReview.as_view(), name="list_review"),  # show list review
+    path('user/update/review/<int:pk>', views.UpdateReviewField.as_view(), name="update_review"),  # update review field
+    path('user/update/content/<int:pk>', views.UpdateContentField.as_view(), name="update_review"),  # update content field
+    path('user/update/images/<int:pk>', views.UpdateImagesField.as_view(), name="update_review"),  # update images field
+    path('user/add/content/', views.AddContentField.as_view(), name="add_content"),  # add content field
+    path('user/add/images/', views.AddImageField.as_view(), name="add_images"),  # add images field
 ]

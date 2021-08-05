@@ -98,7 +98,6 @@ class ChangeProfileSerializer(serializers.ModelSerializer):
             raise e
 
 
-
 class ImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Image
@@ -133,3 +132,21 @@ class HomepageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Review
         fields = ['title', 'image_title', ]
+
+
+class UpdateReviewSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Review
+        fields = '__all__'
+
+
+class UpdateContentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Content
+        fields = '__all__'
+
+
+class UpdateImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Image
+        fields = '__all__'

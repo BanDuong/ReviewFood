@@ -355,6 +355,8 @@ class DeleteUser(generics.DestroyAPIView):
 
 # ---------------------------------------Management_DB-----------------------------------------#
 
+# -----------------------------HOME------------------------------#
+
 class SearchReview(generics.ListCreateAPIView):
     query = Content.objects.all()
     pagination_class = CustomPageNumberPagination20
@@ -399,6 +401,8 @@ class ShowAllPost(generics.ListAPIView):
         except Exception as e:
             raise ValidationError(e)
 
+
+# -----------------------ADMIN---------------------------------#
 
 class CheckPostReview(generics.ListCreateAPIView):
     queryset = Review.objects.filter(status=False)
@@ -459,6 +463,8 @@ class ShowAllUserPostReview(generics.ListAPIView):
         except Exception as e:
             raise ValidationError(e)
 
+            # -----------------------------USER------------------------------#
+
 
 class UserPostReview(APIView):
 
@@ -473,13 +479,16 @@ class UserPostReview(APIView):
                     r.save()
                 else:
                     r = Review.objects.get(title=data.get('title'))
-                c = Content(title=r, heading=data.get('heading'), content=data.get('content'))
-                c.save()
-                for img in data.getlist('image'):
-                    i = Image(content=c, images=img)
-                    i.save()
-                response.data = {"notice": "posted successfully"}
-                return response
+                if Content.objects.get(heading=data.get('heading')):
+                    raise ValidationError("Heading does exist")
+                else:
+                    c = Content(title=r, heading=data.get('heading'), content=data.get('content'))
+                    c.save()
+                    for img in data.getlist('image'):
+                        i = Image(content=c, images=img)
+                        i.save()
+                    response.data = {"notice": "posted successfully"}
+                    return response
             else:
                 raise ValidationError("No data request")
         except Exception as e:
@@ -520,5 +529,140 @@ class UserShowListReview(generics.ListAPIView):
 
             serializer = self.get_serializer(queryset, many=True)
             return Response(serializer.data)
+        except Exception as e:
+            raise ValidationError(e)
+
+
+class UpdateReviewField(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Review.objects.all()
+    serializer_class = UpdateReviewSerializer
+
+    def get(self, request, *args, **kwargs):
+        response, user = check_token_user(request, "access_token", "refresh_token")
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
+    def put(self, request, *args, **kwargs):
+        response, user = check_token_user(request, "access_token", "refresh_token")
+        try:
+            instance = self.get_object()
+            for k, v in request.data.items():
+                setattr(instance, k, v)
+            instance.save()
+            serializer = self.get_serializer(instance)
+            response.data = {"update_data": serializer.data}
+            return response
+        except Exception as e:
+            raise ValidationError(e)
+
+    def delete(self, request, *args, **kwargs):
+        response, user = check_token_user(request, "access_token", "refresh_token")
+        try:
+            instance = self.get_object()
+            self.perform_destroy(instance)
+            return Response(data={"notice": "deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+        except Exception as e:
+            raise ValidationError(e)
+
+    def perform_destroy(self, instance):
+        instance.delete()
+
+
+class UpdateContentField(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Content.objects.all()
+    serializer_class = UpdateContentSerializer
+
+    def get(self, request, *args, **kwargs):
+        response, user = check_token_user(request, "access_token", "refresh_token")
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
+    def put(self, request, *args, **kwargs):
+        response, user = check_token_user(request, "access_token", "refresh_token")
+        try:
+            instance = self.get_object()
+            for k, v in request.data.items():
+                setattr(instance, k, v)
+            instance.save()
+            serializer = self.get_serializer(instance)
+            response.data = {"update_data": serializer.data}
+            return response
+        except Exception as e:
+            raise ValidationError(e)
+
+    def delete(self, request, *args, **kwargs):
+        response, user = check_token_user(request, "access_token", "refresh_token")
+        try:
+            instance = self.get_object()
+            self.perform_destroy(instance)
+            return Response(data={"notice": "deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+        except Exception as e:
+            raise ValidationError(e)
+
+    def perform_destroy(self, instance):
+        instance.delete()
+
+
+class UpdateImagesField(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Image.objects.all()
+    serializer_class = UpdateImageSerializer
+
+    def get(self, request, *args, **kwargs):
+        response, user = check_token_user(request, "access_token", "refresh_token")
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
+    def put(self, request, *args, **kwargs):
+        response, user = check_token_user(request, "access_token", "refresh_token")
+        try:
+            instance = self.get_object()
+            for k, v in request.data.items():
+                setattr(instance, k, v)
+            instance.save()
+            serializer = self.get_serializer(instance)
+            response.data = {"update_data": serializer.data}
+            return response
+        except Exception as e:
+            raise ValidationError(e)
+
+    def delete(self, request, *args, **kwargs):
+        response, user = check_token_user(request, "access_token", "refresh_token")
+        try:
+            instance = self.get_object()
+            self.perform_destroy(instance)
+            return Response(data={"notice": "deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+        except Exception as e:
+            raise ValidationError(e)
+
+    def perform_destroy(self, instance):
+        instance.delete()
+
+
+class AddContentField(APIView):
+
+    def post(self, request, *args, **kwargs):
+        response, user = check_token_user(request, "access_token", "refresh_token")
+        try:
+            data = request.data
+            if not Content.objects.filter(heading=data.get("heading")):
+                Content(heading=data.get("heading"), content=data.get("content"), title_id=data.get("title_id")).save()
+                return Response(data={"notice": "Updated successfully"})
+            else:
+                raise ValidationError("This content does exist")
+        except Exception as e:
+            raise ValidationError(e)
+
+
+class AddImageField(generics.CreateAPIView):
+
+    def post(self, request, *args, **kwargs):
+        response, user = check_token_user(request, "access_token", "refresh_token")
+        try:
+            for img in request.data.getlist("images"):
+                Image(images=img, content_id=request.data.get("content_id")).save()
+            return Response(data={"notice": "Updated successfully"})
         except Exception as e:
             raise ValidationError(e)
