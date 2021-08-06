@@ -12,6 +12,7 @@ urlpatterns = [
     path('user/change_profile/', views.ChangeProfileUser.as_view(), name="change_profile"),  # change profile
     path('verify_create_user/', views.VerifyCreateUser.as_view(), name="verify_create_user"),  # verify code create user
     path('forget_password/', views.ForgetPassword.as_view(), name="forget_password"),  # forget_password
+    path('user/report/', views.UserReport.as_view(), name="report"), # report
 
     # ---------------------------------ADMIN--------------------------------------------------------------------#
 
@@ -37,4 +38,5 @@ urlpatterns = [
     path('user/update/images/<int:pk>', views.UpdateImagesField.as_view(), name="update_review"),  # update images field
     path('user/add/content/', views.AddContentField.as_view(), name="add_content"),  # add content field
     path('user/add/images/', views.AddImageField.as_view(), name="add_images"),  # add images field
+    path('user/comment/<int:pk>', views.UserComment.as_view(), name="user_comment"), # user comment
 ]

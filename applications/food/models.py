@@ -149,3 +149,15 @@ class Image(TimeStamp):
     class Meta:
         db_table = "tb_image"
         verbose_name_plural = "image"
+
+
+class Comment(TimeStamp):
+    review = models.ForeignKey(Review, on_delete=models.CASCADE, related_name="comment", null=True, blank=True)
+    comments = models.TextField(blank=True, null=True, verbose_name="comment")
+
+    def __str__(self):
+        return self.comments
+
+    class Meta:
+        db_table = "tb_comment"
+        verbose_name_plural = "comment"

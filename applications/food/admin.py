@@ -29,8 +29,16 @@ class ContentAdmin(admin.ModelAdmin):
 
 
 @admin.register(Image)
-class Image(admin.ModelAdmin):
+class ImageAdmin(admin.ModelAdmin):
     ordering = ('created_at',)
     list_filter = ('id', 'images',)
     list_display = ('id', 'images', 'created_at', 'updated_at',)
     search_fields = ('id', 'content', 'images', 'user')
+
+@admin.register(Comment)
+class CommentAdmin(admin.ModelAdmin):
+    ordering = ('created_at',)
+    list_filter = ('id', 'comments',)
+    list_display = ('id', 'comments', 'created_at', 'updated_at',)
+    search_fields = ('id', 'comments', 'review', 'user')
+

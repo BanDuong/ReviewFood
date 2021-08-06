@@ -16,7 +16,7 @@ from .token import generate_access_token, generate_fresh_token, generate_token
 from django.conf import settings
 import redis
 import uuid
-from .mail import verify_email, send_content_by_email
+from .mail import verify_email, send_content_by_email, send_report
 from django.contrib.auth import authenticate
 from django.views import View
 
@@ -465,21 +465,19 @@ class ShowAllUserPostReview(generics.ListAPIView):
 
             # -----------------------------USER------------------------------#
 
-
 class UserPostReview(APIView):
 
     def post(self, request, *args, **kwargs):
         response, user = check_token_user(request, "access_token", "refresh_token")
         try:
             data = request.data
-            image = data.getlist('image')
             if data:
-                if not Review.objects.get(title=data.get('title')):
+                if not Review.objects.filter(title=data.get('title')):
                     r = Review(user=user, title=data.get('title'), image_title=data.get('image_title'))
                     r.save()
                 else:
                     r = Review.objects.get(title=data.get('title'))
-                if Content.objects.get(heading=data.get('heading')):
+                if Content.objects.filter(heading=data.get('heading'), title_id=r.id):
                     raise ValidationError("Heading does exist")
                 else:
                     c = Content(title=r, heading=data.get('heading'), content=data.get('content'))
@@ -664,5 +662,33 @@ class AddImageField(generics.CreateAPIView):
             for img in request.data.getlist("images"):
                 Image(images=img, content_id=request.data.get("content_id")).save()
             return Response(data={"notice": "Updated successfully"})
+        except Exception as e:
+            raise ValidationError(e)
+
+class UserReport(APIView):
+
+    def post(self, request, *args, **kwargs):
+        respone, user = check_token_user(request, "access_token", "refresh_token")
+        try:
+            send_report(user.email,request.data.get('subject'), request.data.get('content'), request.data.getlist('file_attach'), request.data.get('url'))
+            respone.data = {"notice": "sent report to Admin"}
+            return respone
+        except Exception as e:
+            raise ValidationError(e)
+
+
+class UserComment(APIView):
+
+    def post(self, request, pk):
+        response, user = check_token_user(request, "access_token", "refresh_token")
+        try:
+            review = Review.objects.get(id=pk)
+            if review:
+                c = Comment(comments=request.data.get('comment'), review_id=pk)
+                c.save()
+                serializer = CommentSerializer(c)
+                return Response(serializer.data)
+            else:
+                raise ValidationError("This review does not exist")
         except Exception as e:
             raise ValidationError(e)
