@@ -19,9 +19,16 @@ import uuid
 from .mail import verify_email, send_content_by_email, send_report
 from django.contrib.auth import authenticate
 from django.views import View
+from rest_framework.renderers import TemplateHTMLRenderer
 
 rd = redis.Redis(host="redis")
 
+class test(APIView):
+    renderer_classes = [TemplateHTMLRenderer,]
+
+    def get(self, request):
+        data = Review.objects.all()
+        return Response({'review': data}, template_name="food/base.html")
 
 # -------------------------------------------Common------------------------------------------#
 
@@ -40,8 +47,7 @@ def check_token_user(request, access_token, refresh_token):
             if type(e) == jwt.exceptions.ExpiredSignatureError:
                 payload = jwt.decode(get_refresh_token, key=settings.REFRESH_KEY, algorithms=["HS256"])
                 user = User.objects.get(id=payload.get('id'))
-                access_token = generate_access_token(user)
-                response.set_cookie(key='access_token', value=access_token, httponly=True)
+                response.set_cookie(key=access_token, value=generate_access_token(user), httponly=True)
                 return response, user
             else:
                 raise ValidationError(detail=e)
@@ -141,7 +147,7 @@ class LoginUser(APIView):
                     return response
         except Exception as e:
             raise ErrLogin(entity="User", err=e)
-
+from rest_framework.authtoken.models import Token
 
 class ProfileUser(APIView):
     def get(self, request, *args, **kwargs):
@@ -692,3 +698,4 @@ class UserComment(APIView):
                 raise ValidationError("This review does not exist")
         except Exception as e:
             raise ValidationError(e)
+

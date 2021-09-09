@@ -5,6 +5,10 @@
     <title>Title</title>
 </head>
 <body>
-    <h1>helllooo</h1>
+    <h1>Review</h1>
+    {% for re in review %}
+        <li>id: {{ re.id }}, {{ re }}, path: {{ request.build_absolute_uri }}{{ re.id }}</li><br>
+        <a href="{{ request.build_absolute_uri }}{{ re.id }}"><img src="{{ re.image_title.url }}"></a>
+    {% endfor %}
 </body>
 </html>
