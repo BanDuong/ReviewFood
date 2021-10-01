@@ -8,7 +8,7 @@ from rest_framework import generics
 from common.errors import *
 from .serializers import *
 from rest_framework.response import Response
-from rest_framework.exceptions import AuthenticationFailed, ValidationError
+from rest_framework.exceptions import APIException, AuthenticationFailed, ValidationError
 import jwt
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticatedOrReadOnly, IsAuthenticated
@@ -543,22 +543,27 @@ class UpdateReviewField(generics.RetrieveUpdateDestroyAPIView):
 
     def get(self, request, *args, **kwargs):
         response, user = check_token_user(request, "access_token", "refresh_token")
-        instance = self.get_object()
-        serializer = self.get_serializer(instance)
-        return Response(serializer.data)
-
-    def put(self, request, *args, **kwargs):
-        response, user = check_token_user(request, "access_token", "refresh_token")
         try:
             instance = self.get_object()
-            for k, v in request.data.items():
-                setattr(instance, k, v)
-            instance.save()
             serializer = self.get_serializer(instance)
-            response.data = {"update_data": serializer.data}
-            return response
+            return Response(serializer.data)
         except Exception as e:
-            raise ValidationError(e)
+            raise APIException(e)
+
+    # update function into serializer
+
+    # def put(self, request, *args, **kwargs):
+    #     response, user = check_token_user(request, "access_token", "refresh_token")
+    #     try:
+    #         instance = self.get_object()
+    #         for k, v in request.data.items():
+    #             setattr(instance, k, v)
+    #         instance.save()
+    #         serializer = self.get_serializer(instance)
+    #         response.data = {"update_data": serializer.data}
+    #         return response
+    #     except Exception as e:
+    #         raise ValidationError(e)
 
     def delete(self, request, *args, **kwargs):
         response, user = check_token_user(request, "access_token", "refresh_token")

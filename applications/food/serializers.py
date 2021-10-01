@@ -146,6 +146,12 @@ class UpdateReviewSerializer(serializers.ModelSerializer):
         model = Review
         fields = '__all__'
 
+    def update(self, instance, validated_data):
+        for k, v in validated_data.items():
+            setattr(instance, k, v)
+        instance.save()
+        return instance
+
 
 class UpdateContentSerializer(serializers.ModelSerializer):
     class Meta:
