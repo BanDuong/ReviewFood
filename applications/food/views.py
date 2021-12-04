@@ -1,6 +1,6 @@
 import random
 from django.shortcuts import render, redirect
-
+import logging
 from common.paging import CustomPageNumberPagination20
 from .models import *
 from rest_framework.views import APIView
@@ -21,6 +21,8 @@ from django.contrib.auth import authenticate
 from django.views import View
 from rest_framework.renderers import TemplateHTMLRenderer
 
+log_info = logging.getLogger('log_info')
+log_warn = logging.getLogger('log_warning')
 rd = redis.Redis(host="redis")
 
 class test(APIView):
@@ -130,6 +132,8 @@ class LoginUser(APIView):
                 response = Response()
                 if request.COOKIES.get('access_token'):
                     response.data = {"warning": "Account is already logged in. Don't try again!"}
+                    response.status_code = status.HTTP_400_BAD_REQUEST
+                    log_warn.warning("Account is already logged in.")
                     return response
                 else:
                     access_token = generate_access_token(user)
@@ -144,10 +148,11 @@ class LoginUser(APIView):
                         "refresh_token": refresh_token,
                         "user": serializer.data,
                     }
+                    log_info.info("Loggin sucessful!")
                     return response
         except Exception as e:
             raise ErrLogin(entity="User", err=e)
-from rest_framework.authtoken.models import Token
+
 
 class ProfileUser(APIView):
     def get(self, request, *args, **kwargs):
@@ -208,9 +213,11 @@ class LogoutUser(APIView):
             response = Response()
             response.delete_cookie(key="access_token")
             response.data = {"notice": "logged out successfully!"}
+            log_info.info("logged out successfully!")
             return response
         else:
-            return Response(data={"warning": "No any account logging"})
+            log_warn.warning("No any account logging")
+            return Response(data={"warning": "No any account logging"}, status=status.HTTP_400_BAD_REQUEST)
 
 
 # ------------------------------------------Admin-------------------------------------------------------#

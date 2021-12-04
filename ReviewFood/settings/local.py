@@ -211,3 +211,58 @@ EMAIL_HOST_PASSWORD = "veiejtqvngispadx"
 EMAIL_USE_TLS = True
 
 CORS_ALLOW_CREDENTIALS = True  # to accept cookies via ajax request
+
+# logging
+LOGGING = {
+    'version': 1,
+    # 'disable_existing_loggers': False,
+    'formatters': {
+        'general': {
+            'format': ' {levelname} - {asctime} - {pathname} - line:{lineno} : {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'info_log': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': './logs/info.log',
+            'formatter': 'general',
+        },
+        'warning_log': {
+            'level': 'WARNING',
+            'class': 'logging.FileHandler',
+            'filename': './logs/warn.log',
+            'formatter': 'general',
+        },
+        'error_log': {
+            'level': 'ERROR',
+            'class': 'logging.FileHandler',
+            'filename': './logs/error.log',
+            'formatter': 'general',
+        },
+        'debug_log': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': './logs/debug.log',
+            'formatter': 'general',
+        },
+    },
+    'loggers': {
+        'log_info': {
+            'handlers': ['info_log', ],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'log_warning': {
+            'handlers': ['warning_log', ],
+            'level': 'WARNING',
+            'propagate': True,
+        },
+        'log_error': {
+            'handlers': ['error_log',],
+            'level': 'ERROR',
+            'propagate': True,
+        },
+    },
+}
