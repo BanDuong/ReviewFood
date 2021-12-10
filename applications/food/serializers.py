@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import *
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import ValidationError, APIException
 from django.contrib.auth import authenticate
 import re
 
@@ -152,6 +152,11 @@ class UpdateReviewSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
+    def validate(self, attrs):
+        if re.findall("[^\s0-9a-zA-Z]", attrs['title']):
+            raise APIException(detail="Only fill 0-9, a-z, A-Z and white space characters", code="FormatError")
+        return attrs
+
 
 class UpdateContentSerializer(serializers.ModelSerializer):
     class Meta:
@@ -163,6 +168,3 @@ class UpdateImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Image
         fields = '__all__'
-
-
-
